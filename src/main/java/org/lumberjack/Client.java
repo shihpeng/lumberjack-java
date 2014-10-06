@@ -4,8 +4,6 @@ import javax.net.ssl.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
