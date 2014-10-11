@@ -125,22 +125,30 @@ public class Client {
         for (byte[] frame : dataFrames) {
             bytesOutput.write(frame);
         }
-
-        byte[] output = new byte[5120];
-        Deflater deflater = new Deflater(6);
-        deflater.setInput(bytesOutput.toByteArray());
-        deflater.finish();
-        int compressedLength = deflater.deflate(output);
-        deflater.end();
-
+        byte[] toBeCompressed = bytesOutput.toByteArray();
         bytesOutput.reset();
+
+        byte[] compressed = compressData(toBeCompressed);
 
         bytesOutput.write(PROTOCOL_VERSION.getBytes());
         bytesOutput.write(COMPRESS_FRAME_TYPE.getBytes());
-        bytesOutput.write(ByteBuffer.allocate(4).putInt(compressedLength).array());
-        bytesOutput.write(Arrays.copyOf(output, compressedLength));
+        bytesOutput.write(ByteBuffer.allocate(4).putInt(compressed.length).array());
+        bytesOutput.write(Arrays.copyOf(compressed, compressed.length));
 
         return bytesOutput.toByteArray();
+    }
+
+    private byte[] compressData(final byte[] data){
+        byte[] output = new byte[5120];
+
+        Deflater deflater = new Deflater(6);
+        deflater.setInput(data);
+        deflater.finish();
+
+        int compressedLength = deflater.deflate(output);
+        deflater.end();
+
+        return Arrays.copyOf(output, compressedLength);
     }
 
     public static void main(String[] args) {
