@@ -5,10 +5,8 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.zip.Deflater;
 
 /*
  *  This is a simple implementation of the Lumberjack client.
@@ -66,13 +64,13 @@ public class Client {
         }
         sequence += 1;
 
-        byte[] dataFrame = prepareDataFrame(dataMap, sequence);
+        byte[] dataFrame = FrameComposer.createDataFrame(dataMap, sequence);
 
         if((sequence - (lastAck + 1)) >= windowSize) {
             ack();
         }
 
-        byte[] compressFrame = prepareCompressFrame(new byte[][]{ dataFrame });
+        byte[] compressFrame = FrameComposer.createCompressFrame(new byte[][]{ dataFrame });
         out.write(compressFrame);
         out.flush();
     }
@@ -95,60 +93,6 @@ public class Client {
         if(socket != null){
             socket.close();
         }
-    }
-
-    private byte[] prepareDataFrame(Map<String, String> dataMap, int sequenceNumber) throws IOException {
-
-        ByteArrayOutputStream bytesOutput = new ByteArrayOutputStream();
-
-        bytesOutput.write(PROTOCOL_VERSION.getBytes());
-        bytesOutput.write(DATA_FRAME_TYPE.getBytes());
-        bytesOutput.write(ByteBuffer.allocate(4).putInt(sequenceNumber).array());
-        bytesOutput.write(ByteBuffer.allocate(4).putInt(dataMap.size()).array());
-
-        for (Map.Entry<String, String> entry : dataMap.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-
-            bytesOutput.write(ByteBuffer.allocate(4).putInt(key.length()).array());
-            bytesOutput.write(key.getBytes());
-            bytesOutput.write(ByteBuffer.allocate(4).putInt(value.getBytes().length).array());
-            bytesOutput.write(value.getBytes());
-        }
-
-        return bytesOutput.toByteArray();
-    }
-
-    private byte[] prepareCompressFrame(byte[][] dataFrames) throws IOException {
-
-        ByteArrayOutputStream bytesOutput = new ByteArrayOutputStream();
-        for (byte[] frame : dataFrames) {
-            bytesOutput.write(frame);
-        }
-        byte[] toBeCompressed = bytesOutput.toByteArray();
-        bytesOutput.reset();
-
-        byte[] compressed = compressData(toBeCompressed);
-
-        bytesOutput.write(PROTOCOL_VERSION.getBytes());
-        bytesOutput.write(COMPRESS_FRAME_TYPE.getBytes());
-        bytesOutput.write(ByteBuffer.allocate(4).putInt(compressed.length).array());
-        bytesOutput.write(Arrays.copyOf(compressed, compressed.length));
-
-        return bytesOutput.toByteArray();
-    }
-
-    private byte[] compressData(final byte[] data){
-        byte[] output = new byte[5120];
-
-        Deflater deflater = new Deflater(6);
-        deflater.setInput(data);
-        deflater.finish();
-
-        int compressedLength = deflater.deflate(output);
-        deflater.end();
-
-        return Arrays.copyOf(output, compressedLength);
     }
 
     public static void main(String[] args) {
